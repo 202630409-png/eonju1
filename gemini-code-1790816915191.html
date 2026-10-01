@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notepad - Notes</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #212529;
+            --text-sub: #6c757d;
+            --accent: #4a6fa5;
+            --border: #e9ecef;
+        }
+
+        /* 스텔스 모드 (메모장 느낌의 최소화 스타일) */
+        body.stealth {
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-sub: #777777;
+            --accent: #555555;
+            --border: #eeeeee;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .header h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .stealth-btn {
+            background: none;
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            cursor: pointer;
+        }
+
+        .exercise-card {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .tag {
+            display: inline-block;
+            background: var(--border);
+            color: var(--text-sub);
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .ex-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .ex-guide {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            line-height: 1.4;
+            min-height: 40px;
+        }
+
+        .display-area {
+            background: var(--bg-color);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .timer-val {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            color: var(--accent);
+        }
+
+        .set-info {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        button.action-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button.action-btn:hover {
+            opacity: 0.9;
+        }
+
+        button.secondary {
+            background: var(--border);
+            color: var(--text-main);
+        }
+
+        .routine-list {
+            margin-top: 24px;
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+        }
+
+        .routine-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 8px 0;
+            color: var(--text-sub);
+        }
+
+        .routine-item.active {
+            color: var(--accent);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1 id="app-title">📝 수업 메모장</h1>
+        <button class="stealth-btn" onclick="toggleStealth()">위장 모드 전환</button>
+    </div>
+
+    <div class="exercise-card">
+        <span class="tag" id="ex-target">코어 / 복근</span>
+        <h2 class="ex-title" id="ex-title">드로인(Draw-in) 호흡</h2>
+        <p class="ex-guide" id="ex-guide">배꼽을 등 가죽에 붙인다는 느낌으로 당긴 후 정지 (호흡은 유지)</p>
+    </div>
+
+    <div class="display-area">
+        <div class="timer-val" id="display-value">00:30</div>
+        <div class="set-info" id="set-info">1 / 5 세트</div>
+    </div>
+
+    <div class="controls">
+        <button class="action-btn secondary" onclick="prevExercise()">이전</button>
+        <button class="action-btn" id="start-btn" onclick="toggleStart()">시작</button>
+        <button class="action-btn secondary" onclick="nextExercise()">다음</button>
+    </div>
+
+    <div class="routine-list" id="routine-list">
+        <!-- 루틴 목록 동적 생성 -->
+    </div>
+</div>
+
+<script>
+    const routine = [
+        { name: "드로인(Draw-in) 호흡", target: "코어 / 복근", type: "timer", duration: 30, sets: 5, guide: "배꼽을 등 가죽에 붙인다는 느낌으로 당긴 후 30초간 유지" },
+        { name: "허벅지 책 끼우기", target: "허벅지 안쪽", type: "timer", duration: 60, sets: 3, guide: "무릎 사이에 책을 끼우고 안쪽으로 60초간 강하게 힘주기" },
+        { name: "글루트 스퀴즈", target: "엉덩이", type: "timer", duration: 10, sets: 10, guide: "상체를 고정한 채 엉덩이에 10초간 힘을 꽉 주기" },
+        { name: "앉은 자세 카프 레이즈", target: "종아리 뒤", type: "reps", reps: 20, sets: 3, guide: "발가락 끝을 바닥에 고정하고 뒤꿈치를 천천히 들어 올리기" },
+        { name: "시티드 토 레이즈", target: "종아리 앞", type: "reps", reps: 20, sets: 3, guide: "발뒤꿈치를 바닥에 붙인 채 발가락 쪽을 천천히 들어 올리기" },
+        { name: "골반저근 운동 (케겔)", target: "골반저근", type: "timer", duration: 10, sets: 10, guide: "소변을 참는 느낌으로 10초 수축 후 휴식" }
+    ];
+
+    let currentExIndex = 0;
+    let currentSet = 1;
+    let timer = null;
+    let timeLeft = 0;
+    let isRunning = false;
+
+    function init() {
+        renderRoutineList();
+        loadExercise(currentExIndex);
+    }
+
+    function loadExercise(index) {
+        clearInterval(timer);
+        isRunning = false;
+        document.getElementById('start-btn').innerText = '시작';
+        
+        currentExIndex = index;
+        currentSet = 1;
+        const ex = routine[currentExIndex];
+
+        document.getElementById('ex-target').innerText = ex.target;
+        document.getElementById('ex-title').innerText = ex.name;
+        document.getElementById('ex-guide').innerText = ex.guide;
+        
+        if (ex.type === 'timer') {
+            timeLeft = ex.duration;
+            updateDisplay(formatTime(timeLeft));
+        } else {
+            updateDisplay(`${ex.reps}회`);
+        }
+        
+        updateSetInfo();
+        highlightRoutine();
+    }
+
+    function updateDisplay(val) {
+        document.getElementById('display-value').innerText = val;
+    }
+
+    function updateSetInfo() {
+        const ex = routine[currentExIndex];
+        document.getElementById('set-info').innerText = `${currentSet} / ${ex.sets} 세트`;
+    }
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function toggleStart() {
+        const ex = routine[currentExIndex];
+        
+        if (ex.type === 'reps') {
+            completeSet();
+            return;
+        }
+
+        if (isRunning) {
+            clearInterval(timer);
+            isRunning = false;
+            document.getElementById('start-btn').innerText = '재개';
+        } else {
+            isRunning = true;
+            document.getElementById('start-btn').innerText = '일시정지';
+            timer = setInterval(() => {
+                timeLeft--;
+                updateDisplay(formatTime(timeLeft));
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    isRunning = false;
+                    completeSet();
+                }
+            }, 1000);
+        }
+    }
+
+    function completeSet() {
+        const ex = routine[currentExIndex];
+        if (currentSet < ex.sets) {
+            currentSet++;
+            if (ex.type === 'timer') {
+                timeLeft = ex.duration;
+                updateDisplay(formatTime(timeLeft));
+            }
+            document.getElementById('start-btn').innerText = '다음 세트 시작';
+            updateSetInfo();
+        } else {
+            alert(`${ex.name} 완료!`);
+            nextExercise();
+        }
+    }
+
+    function nextExercise() {
+        if (currentExIndex < routine.length - 1) {
+            loadExercise(currentExIndex + 1);
+        } else {
+            alert('오늘의 운동 루틴을 완료했습니다!');
+            loadExercise(0);
+        }
+    }
+
+    function prevExercise() {
+        if (currentExIndex > 0) {
+            loadExercise(currentExIndex - 1);
+        }
+    }
+
+    function renderRoutineList() {
+        const listEl = document.getElementById('routine-list');
+        listEl.innerHTML = routine.map((ex, i) => `
+            <div class="routine-item" id="routine-item-${i}" onclick="loadExercise(${i})" style="cursor:pointer">
+                <span>${i + 1}. ${ex.name}</span>
+                <span>${ex.type === 'timer' ? ex.duration + '초' : ex.reps + '회'} × ${ex.sets}세트</span>
+            </div>
+        `).join('');
+    }
+
+    function highlightRoutine() {
+        routine.forEach((_, i) => {
+            const item = document.getElementById(`routine-item-${i}`);
+            if (i === currentExIndex) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+
+    function toggleStealth() {
+        document.body.classList.toggle('stealth');
+        const title = document.getElementById('app-title');
+        if (document.body.classList.contains('stealth')) {
+            title.innerText = '📄 Document1.txt';
+        } else {
+            title.innerText = '📝 수업 메모장';
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
